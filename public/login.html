@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TI Estoque — Login</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg); }
+
+    .login-wrap {
+      width: 100%; max-width: 400px; padding: 20px;
+    }
+
+    .login-brand {
+      text-align: center; margin-bottom: 36px;
+    }
+
+    .login-logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .login-logo-icon {
+      font-size: 48px; display: block; margin-bottom: 12px;
+    }
+
+    .login-tagline {
+      font-size: 13px; color: var(--text3);
+    }
+
+    .login-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+
+    .login-card h1 {
+      font-size: 22px; font-weight: 700; margin-bottom: 6px;
+    }
+
+    .login-card p {
+      font-size: 13px; color: var(--text3); margin-bottom: 28px;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 13px;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s;
+      margin-top: 8px;
+    }
+
+    .login-btn:hover { background: #00b8d9; box-shadow: 0 4px 20px rgba(0,212,255,0.4); transform: translateY(-1px); }
+    .login-btn:active { transform: translateY(0); }
+
+    .alert-error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #ef4444;
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .bg-grid {
+      position: fixed; inset: 0; z-index: -1;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .bg-glow {
+      position: fixed; width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+      top: -200px; left: 50%; transform: translateX(-50%);
+      z-index: -1; pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="login-wrap">
+    <div class="login-brand">
+      <span class="login-logo-icon"></span>
+      <div class="login-logo">TI · Estoque</div>
+      <div class="login-tagline">Controle de equipamentos de TI</div>
+    </div>
+
+    <div class="login-card">
+      <h1>Bem-vindo</h1>
+      <p>Faça login para acessar o sistema</p>
+
+      <div id="erroMsg" class="alert-error" style="display:none">
+        ⚠️ Usuário ou senha incorretos
+      </div>
+
+      <form method="POST" action="/login">
+        <div class="form-group">
+          <label class="form-label">Usuário</label>
+          <input type="text" name="username" class="form-control" placeholder="seu.usuario" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha</label>
+          <input type="password" name="senha" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="login-btn">Entrar →</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    if (params.get('erro') === 'invalido') {
+      document.getElementById('erroMsg').style.display = 'flex';
+    }
+  </script>
+</body>
+</html>

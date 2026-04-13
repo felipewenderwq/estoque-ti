@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — TI Estoque</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<script>
+  // User injetado pelo servidor via cookie de sessão (lido via API)
+  window.__USER__ = null;
+</script>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">TI Estoque</div>
+      <div class="subtitle">Controle de Equipamentos</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">Menu</div>
+      <a href="/dashboard" class="nav-item active"><span class="icon"></span> Dashboard</a>
+      <a href="/equipamentos" class="nav-item"><span class="icon"></span> Equipamentos</a>
+      <a href="/alocacoes" class="nav-item"><span class="icon"></span> Alocações</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-info">
+          <div class="user-name" id="userName">...</div>
+          <div class="user-role" id="userRole">...</div>
+        </div>
+        <button class="logout-btn" onclick="location.href='/logout'" title="Sair">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <div>
+        <div class="page-title">Dashboard</div>
+        <div class="page-subtitle" id="dateStr">...</div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <!-- Stats -->
+      <div class="stats-grid" id="statsGrid">
+        <div class="loading"><div class="spinner"></div> Carregando...</div>
+      </div>
+
+      <!-- Grid de conteúdo -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:4px">
+        <!-- Por Categoria -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Por Categoria</span>
+          </div>
+          <div id="catTable"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+
+        <!-- Últimas Movimentações -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Últimas Movimentações</span>
+          </div>
+          <div id="movList"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/utils.js"></script>
+<script>
+  // Data
+  document.getElementById('dateStr').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Carregar user info via API de stats (que requer auth)
+  async function loadDashboard() {
+    try {
+      const data = await api('GET', '/dashboard/api/stats');
+      renderStats(data.stats);
+      renderCategorias(data.porCategoria);
+      renderMovimentacoes(data.ultimasMovimentacoes);
+    } catch(e) {
+      toast('Erro ao carregar dados', 'error');
+    }
+  }
+
+  function renderStats(s) {
+    const cards = [
+      { label: 'Total Cadastrado', value: s.total, icon: '', color: 'var(--accent)' },
+      { label: 'Disponíveis', value: s.disponiveis, icon: '', color: '#10b981' },
+      { label: 'Em Uso', value: s.emUso, icon: '', color: '#00d4ff' },
+      { label: 'Defeituosos', value: s.defeituosos, icon: '', color: '#f59e0b' },
+      { label: 'Alocações Ativas', value: s.alocacoesAtivas, icon: '', color: '#a78bfa' },
+    ];
+
+    document.getElementById('statsGrid').innerHTML = cards.map(c => `
+      <div class="stat-card" style="--accent-color: ${c.color}">
+        <div class="stat-icon">${c.icon}</div>
+        <div class="stat-value">${c.value}</div>
+        <div class="stat-label">${c.label}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderCategorias(cats) {
+    if (!cats.length) {
+      document.getElementById('catTable').innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><p>Nenhum equipamento</p></div>';
+      return;
+    }
+
+    document.getElementById('catTable').innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Categoria</th>
+          <th>Total</th>
+          <th>Disponível</th>
+          <th>Em Uso</th>
+        </tr></thead>
+        <tbody>
+          ${cats.map(c => `
+            <tr>
+              <td>${catIcon(c.categoria)} ${c.categoria}</td>
+              <td><strong>${c.total}</strong></td>
+              <td><span class="badge badge-green">● ${c.disponiveis}</span></td>
+              <td><span class="badge badge-blue">● ${c.em_uso}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  const MOV_ICONS = { entrada: '', saida: '', manutencao: '', descarte: '', devolucao: '↩' };
+  const MOV_LABELS = { entrada: 'Entrada', saida: 'Saída', manutencao: 'Manutenção', descarte: 'Descarte', devolucao: 'Devolução' };
+
+  function renderMovimentacoes(movs) {
+    if (!movs.length) {
+      document.getElementById('movList').innerHTML = '<div class="empty-state"><div class="empty-icon"></div><p>Nenhuma movimentação</p></div>';
+      return;
+    }
+
+    document.getElementById('movList').innerHTML = movs.map(m => `
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:20px;flex-shrink:0">${MOV_ICONS[m.tipo] || ''}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${m.equipamento_nome || 'Equipamento'}</div>
+          <div style="font-size:12px;color:var(--text3)">${m.descricao || MOV_LABELS[m.tipo]}</div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);flex-shrink:0">${fmtDateShort(m.criado_em)}</div>
+      </div>
+    `).join('');
+  }
+
+  loadDashboard();
+
+  // Atualizar user na sidebar
+  async function loadUser() {
+    try {
+      const r = await fetch('/dashboard/api/stats');
+      if (r.status === 302 || r.redirected) { location.href = '/login'; return; }
+    } catch {}
+  }
+</script>
+</body>
+</html>

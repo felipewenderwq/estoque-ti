@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alocações — TI Estoque</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">TI Estoque</div>
+      <div class="subtitle">Controle de Equipamentos</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">Menu</div>
+      <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
+      <a href="/equipamentos" class="nav-item"><span class="icon"></span> Equipamentos</a>
+      <a href="/alocacoes" class="nav-item active"><span class="icon"></span> Alocações</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar">?</div>
+        <div class="user-info">
+          <div class="user-name">...</div>
+          <div class="user-role">...</div>
+        </div>
+        <button class="logout-btn" onclick="location.href='/logout'" title="Sair">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <div>
+        <div class="page-title">Alocações</div>
+        <div class="page-subtitle">Controle de quem está com cada equipamento</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <select class="form-control" id="filterStatus" onchange="loadAlocacoes()" style="width:auto">
+          <option value="ativo">Ativas</option>
+          <option value="devolvido">Devolvidas</option>
+          <option value="">Todas</option>
+        </select>
+        <button class="btn btn-primary" id="btnNovaAloc" onclick="abrirModalAloc()">+ Nova Alocação</button>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="card" style="padding:0">
+        <div class="table-wrap" id="tableWrap">
+          <div class="loading"><div class="spinner"></div> Carregando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nova Alocação -->
+<div class="modal-overlay" id="modalAloc">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title"> Nova Alocação</span>
+      <button class="modal-close" onclick="closeModal('modalAloc')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="formAloc" onsubmit="salvarAloc(event)">
+        <div class="form-group">
+          <label class="form-label">Equipamento <span class="req">*</span></label>
+          <select class="form-control" id="alocEquip" required>
+            <option value="">Selecione o equipamento...</option>
+          </select>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Colaborador <span class="req">*</span></label>
+            <input type="text" class="form-control" id="alocColab" placeholder="Nome do colaborador" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Setor</label>
+            <input type="text" class="form-control" id="alocSetor" placeholder="Ex: Financeiro, RH...">
+          </div>
+          <div class="form-group col-span-2">
+            <label class="form-label">Observações</label>
+            <input type="text" class="form-control" id="alocObs" placeholder="Detalhes da alocação...">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalAloc')">Cancelar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('formAloc').requestSubmit()" id="btnSalvarAloc">Alocar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/utils.js"></script>
+<script>
+  let isAdmin = false;
+
+  async function loadAlocacoes() {
+    const status = document.getElementById('filterStatus').value;
+    const params = status ? `?status=${status}` : '';
+    try {
+      const data = await api('GET', `/alocacoes/api${params}`);
+      renderTabela(data);
+    } catch(e) {
+      toast('Erro ao carregar alocações', 'error');
+    }
+  }
+
+  function renderTabela(data) {
+    const wrap = document.getElementById('tableWrap');
+    if (!data.length) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-icon"></div><p>Nenhuma alocação encontrada</p></div>';
+      return;
+    }
+
+    const filterStatus = document.getElementById('filterStatus').value;
+
+    wrap.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Equipamento</th>
+          <th>Categoria</th>
+          <th>Colaborador</th>
+          <th>Setor</th>
+          <th>Data Saída</th>
+          <th>Retorno</th>
+          <th>Status</th>
+          ${isAdmin && filterStatus === 'ativo' ? '<th>Ação</th>' : ''}
+        </tr></thead>
+        <tbody>
+          ${data.map(a => `
+            <tr>
+              <td><strong>${a.equipamento_nome || '—'}</strong></td>
+              <td>${catIcon(a.categoria)} ${a.categoria || '—'}</td>
+              <td>${a.colaborador_nome}</td>
+              <td style="color:var(--text2)">${a.colaborador_setor || '—'}</td>
+              <td style="color:var(--text2)">${fmtDateShort(a.data_saida)}</td>
+              <td style="color:var(--text2)">${fmtDateShort(a.data_retorno)}</td>
+              <td>${a.status === 'ativo' ? '<span class="badge badge-blue">● Ativo</span>' : '<span class="badge badge-green">● Devolvido</span>'}</td>
+              ${isAdmin && filterStatus === 'ativo' ? `
+                <td>
+                  ${a.status === 'ativo' ? `<button class="btn btn-success btn-sm" onclick="devolver(${a.id}, '${a.colaborador_nome.replace(/'/g,'\\\'') }')">↩️ Devolver</button>` : ''}
+                </td>
+              ` : ''}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  async function abrirModalAloc() {
+    if (!isAdmin) return toast('Sem permissão', 'error');
+    // Carregar equipamentos disponíveis
+    try {
+      const equips = await api('GET', '/equipamentos/api?status=disponivel');
+      const sel = document.getElementById('alocEquip');
+      sel.innerHTML = '<option value="">Selecione o equipamento...</option>' +
+        equips.map(e => `<option value="${e.id}">${catIcon(e.categoria)} ${e.nome} ${e.marca ? '— ' + e.marca : ''}</option>`).join('');
+      document.getElementById('formAloc').reset();
+      openModal('modalAloc');
+    } catch(e) {
+      toast('Erro ao carregar equipamentos disponíveis', 'error');
+    }
+  }
+
+  async function salvarAloc(evt) {
+    evt.preventDefault();
+    const body = {
+      equipamento_id: document.getElementById('alocEquip').value,
+      colaborador_nome: document.getElementById('alocColab').value,
+      colaborador_setor: document.getElementById('alocSetor').value,
+      observacoes: document.getElementById('alocObs').value,
+    };
+
+    const btn = document.getElementById('btnSalvarAloc');
+    btn.disabled = true; btn.textContent = 'Alocando...';
+
+    try {
+      await api('POST', '/alocacoes/api', body);
+      toast('Equipamento alocado com sucesso!');
+      closeModal('modalAloc');
+      loadAlocacoes();
+    } catch(e) {
+      toast(e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Alocar';
+    }
+  }
+
+  async function devolver(id, nome) {
+    if (!confirm(`Confirmar devolução de "${nome}"?`)) return;
+    try {
+      await api('PUT', `/alocacoes/api/${id}/devolver`);
+      toast('Devolução registrada!');
+      loadAlocacoes();
+    } catch(e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  async function detectarPermissao() {
+    try {
+      const res = await fetch('/alocacoes/api', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) });
+      isAdmin = res.status !== 403;
+    } catch { isAdmin = false; }
+    if (!isAdmin) document.getElementById('btnNovaAloc').style.display = 'none';
+  }
+
+  detectarPermissao().then(() => loadAlocacoes());
+</script>
+</body>
+</html>

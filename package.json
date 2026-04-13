@@ -1,0 +1,14 @@
+{
+  "name": "ti-estoque",
+  "version": "2.0.0",
+  "description": "Sistema de Controle de Equipamentos de TI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.3",
+    "express-session": "^1.18.0",
+    "sql.js": "^1.14.1"
+  }
+}

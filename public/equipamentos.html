@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Equipamentos — TI Estoque</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">TI Estoque</div>
+      <div class="subtitle">Controle de Equipamentos</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">Menu</div>
+      <a href="/dashboard" class="nav-item"><span class="icon"></span> Dashboard</a>
+      <a href="/equipamentos" class="nav-item active"><span class="icon"></span> Equipamentos</a>
+      <a href="/alocacoes" class="nav-item"><span class="icon"></span> Alocações</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-info">
+          <div class="user-name" id="userName">...</div>
+          <div class="user-role" id="userRole">...</div>
+        </div>
+        <button class="logout-btn" onclick="location.href='/logout'" title="Sair">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <div>
+        <div class="page-title">Equipamentos</div>
+        <div class="page-subtitle">Gerencie o inventário de hardware</div>
+      </div>
+      <button class="btn btn-primary" id="btnNovoEquip" onclick="abrirModalNovo()">
+        + Novo Equipamento
+      </button>
+    </div>
+
+    <div class="page-body">
+      <!-- Filtros -->
+      <div class="search-bar">
+        <div class="search-input-wrap">
+          <span class="search-icon"></span>
+          <input type="text" class="form-control" id="searchQ" placeholder="Buscar por nome, marca, modelo, nº série..." oninput="filtrar()">
+        </div>
+        <select class="form-control" id="filterCat" onchange="filtrar()" style="width:auto;min-width:160px">
+          <option value="">Todas as categorias</option>
+          <option>Mouse com Fio</option>
+          <option>Mouse sem Fio</option>
+          <option>Teclado</option>
+          <option>No-break</option>
+          <option>Cabo HDMI/VGA</option>
+          <option>Monitor</option>
+          <option>Notebook Dell</option>
+          <option>Notebook Lenovo</option>
+        </select>
+        <select class="form-control" id="filterStatus" onchange="filtrar()" style="width:auto;min-width:140px">
+          <option value="">Todos os status</option>
+          <option value="disponivel">Disponível</option>
+          <option value="em_uso">Em Uso</option>
+          <option value="defeituoso">Defeituoso</option>
+        </select>
+      </div>
+
+      <!-- Tabela -->
+      <div class="card" style="padding:0">
+        <div class="table-wrap" id="tableWrap">
+          <div class="loading"><div class="spinner"></div> Carregando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Novo/Editar Equipamento -->
+<div class="modal-overlay" id="modalEquip">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalEquipTitle">Novo Equipamento</span>
+      <button class="modal-close" onclick="closeModal('modalEquip')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="formEquip" onsubmit="salvarEquip(event)">
+        <input type="hidden" id="equipId">
+        <div class="form-grid">
+          <div class="form-group col-span-2">
+            <label class="form-label">Nome <span class="req">*</span></label>
+            <input type="text" class="form-control" id="equipNome" placeholder="Ex: Mouse Logitech M280" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoria <span class="req">*</span></label>
+            <select class="form-control" id="equipCat" required>
+              <option value="">Selecione...</option>
+              <option>Mouse com Fio</option>
+              <option>Mouse sem Fio</option>
+              <option>Teclado</option>
+              <option>No-break</option>
+              <option>Cabo HDMI/VGA</option>
+              <option>Monitor</option>
+              <option>Notebook Dell</option>
+              <option>Notebook Lenovo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-control" id="equipStatus">
+              <option value="disponivel">Disponível</option>
+              <option value="em_uso">Em Uso</option>
+              <option value="defeituoso">Defeituoso</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Marca</label>
+            <input type="text" class="form-control" id="equipMarca" placeholder="Ex: Logitech">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Modelo</label>
+            <input type="text" class="form-control" id="equipModelo" placeholder="Ex: M280">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nº de Série</label>
+            <input type="text" class="form-control" id="equipSerie" placeholder="Ex: LG2023-0042">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quantidade</label>
+            <input type="number" class="form-control" id="equipQtd" value="1" min="1" max="9999">
+          </div>
+          <div class="form-group col-span-2">
+            <label class="form-label">Observações</label>
+            <input type="text" class="form-control" id="equipObs" placeholder="Detalhes adicionais...">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalEquip')">Cancelar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('formEquip').requestSubmit()" id="btnSalvarEquip">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/utils.js"></script>
+<script>
+  let equipamentos = [];
+  let isAdmin = false;
+
+  async function loadEquipamentos() {
+    const q = document.getElementById('searchQ').value;
+    const cat = document.getElementById('filterCat').value;
+    const status = document.getElementById('filterStatus').value;
+
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (cat) params.set('categoria', cat);
+    if (status) params.set('status', status);
+
+    try {
+      equipamentos = await api('GET', `/equipamentos/api?${params}`);
+      renderTabela();
+    } catch(e) {
+      toast('Erro ao carregar equipamentos', 'error');
+    }
+  }
+
+  function filtrar() {
+    clearTimeout(window._filterTimer);
+    window._filterTimer = setTimeout(loadEquipamentos, 300);
+  }
+
+  function renderTabela() {
+    const wrap = document.getElementById('tableWrap');
+
+    if (!equipamentos.length) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-icon"></div><p>Nenhum equipamento encontrado</p></div>';
+      return;
+    }
+
+    wrap.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Equipamento</th>
+          <th>Categoria</th>
+          <th>Marca / Modelo</th>
+          <th>Nº Série</th>
+          <th>Qtd</th>
+          <th>Status</th>
+          ${isAdmin ? '<th>Ações</th>' : ''}
+        </tr></thead>
+        <tbody>
+          ${equipamentos.map(e => `
+            <tr>
+              <td><strong>${e.nome}</strong></td>
+              <td>${catIcon(e.categoria)} ${e.categoria}</td>
+              <td style="color:var(--text2)">${[e.marca, e.modelo].filter(Boolean).join(' ') || '—'}</td>
+              <td><code style="font-size:12px;color:var(--text3);font-family:'Space Mono',monospace">${e.numero_serie || '—'}</code></td>
+              <td><strong>${e.quantidade}</strong></td>
+              <td>${badge(e.status)}</td>
+              ${isAdmin ? `
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <button class="btn btn-secondary btn-sm" onclick="editarEquip(${e.id})">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="descartarEquip(${e.id}, '${e.nome.replace(/'/g,'\\\'') }')">Delete</button>
+                  </div>
+                </td>
+              ` : ''}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function abrirModalNovo() {
+    if (!isAdmin) return toast('Sem permissão', 'error');
+    document.getElementById('equipId').value = '';
+    document.getElementById('modalEquipTitle').textContent = '+ Novo Equipamento';
+    document.getElementById('formEquip').reset();
+    document.getElementById('equipQtd').value = 1;
+    openModal('modalEquip');
+  }
+
+  async function editarEquip(id) {
+    try {
+      const e = await api('GET', `/equipamentos/api/${id}`);
+      document.getElementById('equipId').value = e.id;
+      document.getElementById('equipNome').value = e.nome;
+      document.getElementById('equipCat').value = e.categoria;
+      document.getElementById('equipStatus').value = e.status;
+      document.getElementById('equipMarca').value = e.marca || '';
+      document.getElementById('equipModelo').value = e.modelo || '';
+      document.getElementById('equipSerie').value = e.numero_serie || '';
+      document.getElementById('equipQtd').value = e.quantidade;
+      document.getElementById('equipObs').value = e.observacoes || '';
+      document.getElementById('modalEquipTitle').textContent = 'Editar Equipamento';
+      openModal('modalEquip');
+    } catch(e) {
+      toast('Erro ao carregar equipamento', 'error');
+    }
+  }
+
+  async function salvarEquip(evt) {
+    evt.preventDefault();
+    const id = document.getElementById('equipId').value;
+    const body = {
+      nome: document.getElementById('equipNome').value,
+      categoria: document.getElementById('equipCat').value,
+      status: document.getElementById('equipStatus').value,
+      marca: document.getElementById('equipMarca').value,
+      modelo: document.getElementById('equipModelo').value,
+      numero_serie: document.getElementById('equipSerie').value,
+      quantidade: parseInt(document.getElementById('equipQtd').value),
+      observacoes: document.getElementById('equipObs').value,
+    };
+
+    const btn = document.getElementById('btnSalvarEquip');
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    try {
+      if (id) {
+        await api('PUT', `/equipamentos/api/${id}`, body);
+        toast('Equipamento atualizado!');
+      } else {
+        await api('POST', '/equipamentos/api', body);
+        toast('Equipamento cadastrado!');
+      }
+      closeModal('modalEquip');
+      loadEquipamentos();
+    } catch(e) {
+      toast(e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Salvar';
+    }
+  }
+
+  async function descartarEquip(id, nome) {
+    if (!confirm(`Descartar "${nome}"? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await api('DELETE', `/equipamentos/api/${id}`);
+      toast('Equipamento descartado');
+      loadEquipamentos();
+    } catch(e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  // Detectar se é admin pela tentativa de POST
+  async function detectarPermissao() {
+    try {
+      const res = await fetch('/equipamentos/api', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) });
+      // Se 400 (bad request) = é admin mas faltou campo. Se 403 = viewer
+      isAdmin = res.status !== 403;
+    } catch { isAdmin = false; }
+    if (!isAdmin) {
+      document.getElementById('btnNovoEquip').style.display = 'none';
+    }
+  }
+
+  detectarPermissao().then(() => loadEquipamentos());
+</script>
+</body>
+</html>
