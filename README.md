@@ -50,3 +50,5 @@ O sistema possui três usuários padrão configurados via script de setup:
 
 * Autenticação: Todas as rotas internas exigem login ativo.
 * Autorização: Funções de escrita (POST, PUT, DELETE) são restritas aos perfis de administrador. Usuários com perfil 'viewer' possuem acesso bloqueado a estas operações.
+
+* ### Code for God, not for men — Colossenses 3:23-24
